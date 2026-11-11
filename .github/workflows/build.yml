@@ -24,11 +24,26 @@ jobs:
 
       - run: npm install
 
+      # HEIC/HEIF/AVIF input uses libheif. Static triplet so the .exe needs no extra DLLs.
+      # `core` skips libheif's default features (x265 is only needed for encoding HEIC).
+      - name: Cache vcpkg packages
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\vcpkg\archives
+          key: vcpkg-libheif-${{ runner.os }}-v1
+
+      - name: Install libheif
+        shell: pwsh
+        run: |
+          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+          "VCPKGRS_TRIPLET=x64-windows-static-md" >> $env:GITHUB_ENV
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install "libheif[core,aom]:x64-windows-static-md"
+
       - name: Test
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        run: cargo test --manifest-path src-tauri/Cargo.toml --features heif
 
       - name: Build
-        run: npm run tauri build
+        run: npm run tauri build -- --features heif
 
       - uses: actions/upload-artifact@v4
         with:

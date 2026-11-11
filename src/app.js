@@ -5,7 +5,8 @@
   const { open } = window.__TAURI__.dialog;
   const webview = window.__TAURI__.webview.getCurrentWebview();
 
-  const INPUT_EXT = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tif", "tiff"];
+  // Replaced at startup with whatever this build of the app can actually open.
+  let INPUT_EXT = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tif", "tiff"];
   const FORMATS = [
     { id: "jpeg", label: "JPG", lossy: true },
     { id: "png", label: "PNG" },
@@ -24,7 +25,7 @@
     list: $("list"), count: $("count"), clear: $("clear"), formats: $("formats"),
     qualityField: $("qualityField"), quality: $("quality"), qualityValue: $("qualityValue"),
     qualityNote: $("qualityNote"), outBtn: $("outBtn"), outReset: $("outReset"),
-    convert: $("convert"), stats: $("stats"),
+    convert: $("convert"), stats: $("stats"), hint: $("inputHint"),
   };
 
   const baseName = (p) => p.split(/[\\/]/).pop();
@@ -181,7 +182,15 @@
     else if (p.type === "drop") { el.drop.classList.remove("hot"); addPaths(p.paths); }
   });
 
+  function renderInputHint() {
+    const names = { jpg: "JPG", png: "PNG", webp: "WebP", gif: "GIF", bmp: "BMP", tiff: "TIFF", heic: "HEIC", avif: "AVIF" };
+    const shown = [...new Set(INPUT_EXT.map((e) => (e === "jpeg" ? "jpg" : e === "tif" ? "tiff" : e === "heif" ? "heic" : e)))];
+    el.hint.textContent = shown.map((e) => names[e] || e.toUpperCase()).join(", ");
+  }
+
   renderFormats();
   renderList();
   renderStats();
+  renderInputHint();
+  invoke("input_formats").then((list) => { INPUT_EXT = list; renderInputHint(); }).catch(() => {});
 })();

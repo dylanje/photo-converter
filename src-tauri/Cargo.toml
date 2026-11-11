@@ -16,8 +16,14 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 moxcms = "0.9"
+# HEIC/HEIF/AVIF input. Optional: needs libheif from vcpkg on Windows (see README).
+libheif-rs = { version = "3", optional = true, default-features = false, features = ["v1_17"] }
 serde = { version = "1", features = ["derive"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp", "tiff", "avif"] }
+
+[features]
+# Enable with `--features heif` once libheif is installed. CI and release builds turn it on.
+heif = ["dep:libheif-rs"]
 
 [profile.dev.package."*"]
 opt-level = 3

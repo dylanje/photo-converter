@@ -42,6 +42,77 @@ impl Target {
     }
 }
 
+fn is_heif_family(path: &Path) -> bool {
+    matches!(
+        path.extension()
+            .and_then(|e| e.to_str())
+            .map(str::to_ascii_lowercase)
+            .as_deref(),
+        Some("heic" | "heif" | "avif")
+    )
+}
+
+#[cfg(not(feature = "heif"))]
+fn load_heif(_path: &Path) -> Result<Loaded, String> {
+    Err("This build can't open HEIC or AVIF files.".to_string())
+}
+
+/// Decode HEIC, HEIF and AVIF through libheif. libheif applies the image's
+/// rotation itself, so EXIF orientation is not applied again here.
+#[cfg(feature = "heif")]
+fn load_heif(path: &Path) -> Result<Loaded, String> {
+    use libheif_rs::{ColorSpace, HeifContext, LibHeif, RgbChroma};
+
+    let path_str = path.to_str().ok_or("Invalid file path")?;
+    let ctx = HeifContext::read_from_file(path_str)
+        .map_err(|e| format!("Can't read HEIC/AVIF file: {e}"))?;
+    let handle = ctx
+        .primary_image_handle()
+        .map_err(|e| format!("Can't read HEIC/AVIF file: {e}"))?;
+
+    let has_alpha = handle.has_alpha_channel();
+    let (chroma, bytes_per_px) = if has_alpha {
+        (RgbChroma::Rgba, 4usize)
+    } else {
+        (RgbChroma::Rgb, 3usize)
+    };
+
+    // Keep the embedded profile only if it parses as an ICC profile. Profiles
+    // stored as plain nclx color codes are not handled yet.
+    let icc = handle
+        .color_profile_raw()
+        .map(|p| p.data)
+        .filter(|d| ColorProfile::new_from_slice(d).is_ok());
+
+    let lib = LibHeif::new();
+    let image = lib
+        .decode(&handle, ColorSpace::Rgb(chroma), None)
+        .map_err(|e| format!("Can't decode HEIC/AVIF file: {e}"))?;
+    let planes = image.planes();
+    let plane = planes.interleaved.ok_or("Unsupported HEIC/AVIF image layout")?;
+
+    let (w, h) = (plane.width as usize, plane.height as usize);
+    let row_len = w * bytes_per_px;
+    let mut buf = Vec::with_capacity(row_len * h);
+    for y in 0..h {
+        let start = y * plane.stride;
+        let row = plane
+            .data
+            .get(start..start + row_len)
+            .ok_or("Corrupt HEIC/AVIF image data")?;
+        buf.extend_from_slice(row);
+    }
+
+    let img = if has_alpha {
+        RgbaImage::from_raw(w as u32, h as u32, buf).map(DynamicImage::ImageRgba8)
+    } else {
+        RgbImage::from_raw(w as u32, h as u32, buf).map(DynamicImage::ImageRgb8)
+    }
+    .ok_or("Corrupt HEIC/AVIF image data")?;
+
+    Ok(Loaded { img, icc })
+}
+
 /// A decoded image plus its embedded ICC color profile, if it has one.
 struct Loaded {
     img: DynamicImage,
@@ -52,6 +123,9 @@ struct Loaded {
 /// after conversion. The ICC profile is kept so colors can be preserved.
 /// All other metadata (EXIF, GPS) is dropped, which is the privacy-friendly default.
 fn load(path: &Path) -> Result<Loaded, String> {
+    if is_heif_family(path) {
+        return load_heif(path);
+    }
     let reader = ImageReader::open(path)
         .map_err(|e| format!("Can't open file: {e}"))?
         .with_guessed_format()
@@ -237,6 +311,16 @@ fn convert_blocking(
     Ok(out.to_string_lossy().into_owned())
 }
 
+/// File extensions this build can open, so the UI never offers files it can't read.
+#[tauri::command]
+fn input_formats() -> Vec<&'static str> {
+    let mut formats = vec!["jpg", "jpeg", "png", "webp", "gif", "bmp", "tif", "tiff"];
+    if cfg!(feature = "heif") {
+        formats.extend(["heic", "heif", "avif"]);
+    }
+    formats
+}
+
 /// Convert one file. Returns the path of the new file.
 #[tauri::command]
 async fn convert_one(
@@ -257,7 +341,7 @@ async fn convert_one(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![convert_one])
+        .invoke_handler(tauri::generate_handler![convert_one, input_formats])
         .run(tauri::generate_context!())
         .expect("error while running Photo Converter");
 }
@@ -364,6 +448,31 @@ mod tests {
         let out = convert_blocking(src.to_str().unwrap(), Target::Bmp, 90, None).unwrap();
         let px = image::open(&out).unwrap().to_rgb8().get_pixel(0, 0).0;
         assert_ne!(px, [200, 100, 50], "pixels should have been converted from P3 to sRGB");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// End-to-end check of the libheif path: write an AVIF with our own encoder,
+    /// then open it through libheif and convert it to PNG.
+    #[cfg(feature = "heif")]
+    #[test]
+    fn avif_input_decodes_through_libheif() {
+        let dir = temp_dir("avif-in");
+        let src = dir.join("in.png");
+        let mut img = image::RgbImage::new(64, 64);
+        for p in img.pixels_mut() {
+            *p = Rgb([200, 100, 50]);
+        }
+        img.save(&src).unwrap();
+
+        let avif = convert_blocking(src.to_str().unwrap(), Target::Avif, 90, None).unwrap();
+        let png = convert_blocking(&avif, Target::Png, 90, None).unwrap();
+
+        let decoded = image::open(&png).unwrap().to_rgb8();
+        assert_eq!(decoded.dimensions(), (64, 64));
+        let px = decoded.get_pixel(32, 32).0;
+        for (got, want) in px.iter().zip([200i32, 100, 50]) {
+            assert!((*got as i32 - want).abs() < 24, "pixel {px:?} too far from original");
+        }
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }

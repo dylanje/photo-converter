@@ -16,11 +16,11 @@ The only "statistics" are a counter of how many photos you have converted, store
 | JPG | yes | yes | Quality slider. Transparency is flattened onto white. |
 | PNG | yes | yes | Lossless. |
 | WebP | yes | yes | Written lossless for now. |
-| AVIF | no | yes | Quality slider. Reading AVIF is planned. |
+| AVIF | release builds | yes | Quality slider. Reading needs the `heif` feature. |
 | GIF | yes | yes | Single frame, 256 colors. |
 | BMP | yes | yes | |
 | TIFF | yes | yes | |
-| HEIC | no | no | Planned (needs libheif). |
+| HEIC | release builds | no | Reading needs the `heif` feature. |
 
 Photos are rotated according to their EXIF orientation. Color profiles are kept in JPG, PNG, WebP and TIFF where the encoder allows; for formats that cannot hold one (BMP, GIF, AVIF) the pixels are converted to sRGB so colors look the same. All other metadata is dropped, so location data in the original is not copied. Converted files are never saved over existing ones; a name like `photo (1).png` is used instead.
 
@@ -34,6 +34,17 @@ npm run dev      # run the app
 npm run build    # produce the installer in src-tauri/target/release/bundle/nsis
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
+
+HEIC and AVIF input use [libheif](https://github.com/strukturag/libheif) and are behind the optional `heif` cargo feature, so a plain `npm run dev` works without it. The app only offers file types the build can actually open. To enable it locally, install libheif with [vcpkg](https://vcpkg.io), then:
+
+```
+vcpkg install "libheif[core,aom]:x64-windows-static-md"
+set VCPKG_ROOT=<your vcpkg folder>
+set VCPKGRS_TRIPLET=x64-windows-static-md
+npm run dev -- --features heif
+```
+
+The CI workflow builds with this feature on, so the installer includes HEIC and AVIF input.
 
 The UI is plain HTML, CSS and JS in `src/` (no bundler). The conversion code is in `src-tauri/src/lib.rs`.
 
