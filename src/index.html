@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Photo Converter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="top">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <h1>Photo Converter</h1>
+      </div>
+      <p class="tagline">Private. Offline. Free.</p>
+    </header>
+
+    <section id="drop" class="drop" tabindex="0" role="button" aria-label="Add photos">
+      <div class="drop-inner">
+        <svg class="drop-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+          <rect x="6" y="9" width="36" height="30" rx="6" stroke="currentColor" stroke-width="2.5" />
+          <circle cx="17" cy="19" r="3.5" stroke="currentColor" stroke-width="2.5" />
+          <path d="M8 34l10-9 8 7 6-5 10 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <h2>Drop photos here</h2>
+        <p>or <button id="browse" class="link" type="button">browse files</button></p>
+        <small>JPG, PNG, WebP, GIF, BMP, TIFF</small>
+      </div>
+    </section>
+
+    <section class="list-wrap" id="listWrap" hidden>
+      <div class="list-head">
+        <span id="count"></span>
+        <button id="clear" class="link" type="button">Clear all</button>
+      </div>
+      <ul id="list" class="list"></ul>
+    </section>
+
+    <section class="bar">
+      <div class="field">
+        <label class="label">Convert to</label>
+        <div class="chips" id="formats" role="radiogroup" aria-label="Output format"></div>
+      </div>
+
+      <div class="row">
+        <div class="field grow" id="qualityField">
+          <label class="label" for="quality">Quality <span id="qualityValue">90</span></label>
+          <input id="quality" type="range" min="1" max="100" value="90" />
+          <small id="qualityNote" class="note"></small>
+        </div>
+
+        <div class="field">
+          <label class="label">Save to</label>
+          <div class="out">
+            <button id="outBtn" class="ghost" type="button">Next to original</button>
+            <button id="outReset" class="icon-btn" type="button" title="Save next to original" hidden aria-label="Reset save location">&times;</button>
+          </div>
+        </div>
+
+        <button id="convert" class="primary" type="button" disabled>Convert</button>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span id="stats"></span>
+    </footer>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

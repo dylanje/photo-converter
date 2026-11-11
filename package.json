@@ -1,0 +1,15 @@
+{
+  "name": "photo-converter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A private, offline photo format converter for Windows.",
+  "license": "MIT",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
