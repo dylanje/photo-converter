@@ -38,7 +38,7 @@ cargo test --manifest-path src-tauri/Cargo.toml
 HEIC and AVIF input use [libheif](https://github.com/strukturag/libheif) and are behind the optional `heif` cargo feature, so a plain `npm run dev` works without it. The app only offers file types the build can actually open. To enable it locally, install libheif with [vcpkg](https://vcpkg.io), then:
 
 ```
-vcpkg install "libheif[core,aom]:x64-windows-static-md"
+vcpkg install "libheif[core,aom,libde265]:x64-windows-static-md"
 set VCPKG_ROOT=<your vcpkg folder>
 set VCPKGRS_TRIPLET=x64-windows-static-md
 npm run dev -- --features heif
@@ -54,3 +54,7 @@ The UI is plain HTML, CSS and JS in `src/` (no bundler). The conversion code is 
 - Lossy WebP with a quality slider
 - Resize and strip-metadata options
 - Folder drop and batch rename
+
+## Third-party code
+
+HEIC and AVIF input use [libheif](https://github.com/strukturag/libheif) (LGPL-3.0), [libde265](https://github.com/strukturag/libde265) (LGPL-3.0) and [aom](https://aomedia.googlesource.com/aom/) (BSD-2-Clause). The x265 encoder (GPL) is deliberately not included.

@@ -475,4 +475,20 @@ mod tests {
         }
         std::fs::remove_dir_all(&dir).unwrap();
     }
+
+    /// Fails with a clear message if libheif was built without its HEVC or AV1 decoder.
+    #[cfg(feature = "heif")]
+    #[test]
+    fn libheif_has_hevc_and_av1_decoders() {
+        use libheif_rs::{CompressionFormat, LibHeif};
+        let lib = LibHeif::new();
+        assert!(
+            !lib.decoder_descriptors(8, Some(CompressionFormat::Hevc)).is_empty(),
+            "libheif was built without an HEVC decoder (libde265), so HEIC files cannot be opened"
+        );
+        assert!(
+            !lib.decoder_descriptors(8, Some(CompressionFormat::Av1)).is_empty(),
+            "libheif was built without an AV1 decoder (aom), so AVIF files cannot be opened"
+        );
+    }
 }

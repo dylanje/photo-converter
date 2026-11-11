@@ -24,20 +24,28 @@ jobs:
 
       - run: npm install
 
-      # HEIC/HEIF/AVIF input uses libheif. Static triplet so the .exe needs no extra DLLs.
-      # `core` skips libheif's default features (x265 is only needed for encoding HEIC).
+      # HEIC/HEIF/AVIF input uses libheif, installed with a pinned vcpkg so feature names
+      # and versions are reproducible. Static triplet: the .exe needs no extra DLLs.
+      #   libde265 = HEVC decoder for HEIC (LGPL)    aom = AV1 decoder for AVIF (BSD)
+      # `core` turns off libheif's default features, which would add x265 (GPL, encoder only).
       - name: Cache vcpkg packages
         uses: actions/cache@v4
         with:
           path: ~\AppData\Local\vcpkg\archives
-          key: vcpkg-libheif-${{ runner.os }}-v1
+          key: vcpkg-libheif-${{ runner.os }}-b58529e-v1
 
       - name: Install libheif
         shell: pwsh
         run: |
-          "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" >> $env:GITHUB_ENV
+          $root = "$env:RUNNER_TEMP\vcpkg"
+          git init $root
+          git -C $root remote add origin https://github.com/microsoft/vcpkg
+          git -C $root fetch --depth 1 origin b58529e33332fbb6dfe20317a82009b78ceeab36
+          git -C $root checkout FETCH_HEAD
+          & "$root\bootstrap-vcpkg.bat" -disableMetrics
+          "VCPKG_ROOT=$root" >> $env:GITHUB_ENV
           "VCPKGRS_TRIPLET=x64-windows-static-md" >> $env:GITHUB_ENV
-          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install "libheif[core,aom]:x64-windows-static-md"
+          & "$root\vcpkg.exe" install "libheif[core,aom,libde265]:x64-windows-static-md" --disable-metrics
 
       - name: Test
         run: cargo test --manifest-path src-tauri/Cargo.toml --features heif
