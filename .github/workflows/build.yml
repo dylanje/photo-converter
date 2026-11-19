@@ -18,9 +18,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      # The vcpkg crate does not tell cargo to rebuild when VCPKG_ROOT changes, so a cached
+      # target/ keeps stale library paths. Change this key whenever the vcpkg pin changes.
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          key: vcpkg-b58529e
 
       - run: npm install
 
