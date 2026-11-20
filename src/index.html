@@ -31,7 +31,10 @@
 
     <section class="list-wrap" id="listWrap" hidden>
       <div class="list-head">
-        <span id="count"></span>
+        <label class="pick all">
+          <input id="selectAll" type="checkbox" aria-label="Select all photos" />
+          <span id="count"></span>
+        </label>
         <button id="clear" class="link" type="button">Clear all</button>
       </div>
       <ul id="list" class="list"></ul>

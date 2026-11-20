@@ -9,6 +9,10 @@ A fast, beautiful photo format converter for Windows. Drop in photos, pick a for
 
 The only "statistics" are a counter of how many photos you have converted, stored locally on your device and shown in the footer. It is never sent anywhere.
 
+## Download
+
+Get the Windows installer from the [latest release](https://github.com/dylanje/photo-converter/releases/latest). Windows may show a "protected your PC" warning because the installer is not code-signed yet; choose "More info", then "Run anyway". Compare the file against `SHA256SUMS.txt` on the release page if you want to verify it.
+
 ## Formats
 
 | | Read | Write | Notes |
@@ -58,3 +62,12 @@ The UI is plain HTML, CSS and JS in `src/` (no bundler). The conversion code is 
 ## Third-party code
 
 HEIC and AVIF input use [libheif](https://github.com/strukturag/libheif) (LGPL-3.0), [libde265](https://github.com/strukturag/libde265) (LGPL-3.0) and [aom](https://aomedia.googlesource.com/aom/) (BSD-2-Clause). The x265 encoder (GPL) is deliberately not included.
+
+## Releasing
+
+1. Set the same new version in `package.json`, `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`.
+2. Commit and push to `main`.
+3. Tag and push the tag: `git tag v0.2.0` then `git push origin v0.2.0`.
+4. CI builds the installer and creates a **draft** release with the installer and `SHA256SUMS.txt`. Open the repo's Releases page, edit the notes, and click Publish.
+
+The build fails early if the tag and the three version numbers disagree.
